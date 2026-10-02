@@ -5,6 +5,8 @@
 // See LICENSE for license information.
 //
 
+import Foundation
+
 /// Renders text with a strikethrough effect.
 public struct Strikethrough: InlineElement {
     /// The content and behavior of this HTML.
@@ -28,8 +30,18 @@ public struct Strikethrough: InlineElement {
     /// Creates a new `Strikethrough` instance using one `InlineElement`
     /// that should be rendered with a strikethrough effect.
     /// - Parameter singleElement: The element to strike.
+    @_disfavoredOverload
     public init(_ singleElement: any InlineElement) {
         self.content = singleElement
+    }
+
+    /// Creates a new `Strikethrough` instance from a localized string.
+    ///
+    /// String literals use this initializer, so they are looked up in your site's
+    /// `Localizable.xcstrings`. Strings stored in a `String` variable are not localized.
+    /// - Parameter string: The localized text to strike.
+    public init(_ string: LocalizedString) {
+        self.content = string
     }
 
     /// Renders this element using publishing context passed in.

@@ -73,6 +73,12 @@ public protocol Site {
     /// Additional languages to publish your static pages in, besides `language`.
     /// Pages in `language` are published at the root, and each alternate language
     /// is published under its own path, e.g. `/es/about/`. Defaults to none.
+    ///
+    /// Links to your homepage or static pages stay in the language of the page they
+    /// appear on, so `Link("About", target: AboutPage())` on `/es/` points to `/es/about/`.
+    /// Use `Link.language(_:)` to link to a specific language's version,
+    /// such as in a language switcher.
+    /// External links, anchors and files such as assets are never prefixed.
     var alternateLanguages: [Language] { get }
 
     /// Overrides the path segment used for an alternate language.
@@ -83,8 +89,8 @@ public protocol Site {
     /// The location of your site's `Localizable.xcstrings`. Defaults to `nil`.
     ///
     /// Ignite reads this catalog directly, on every platform, to translate
-    /// string literals passed to `Text` and other `LocalizedString` values
-    /// into the language of each page. Plural and device variations are not supported.
+    /// string literals passed to `Text`, `Link`, `Button`, `Badge` and other
+    /// elements that take text into the language of each page. Plural and device variations are not supported.
     /// When this is `nil`, strings render as written.
     ///
     /// Declare the catalog as a `.copy` resource, not `.process`,

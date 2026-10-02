@@ -49,6 +49,10 @@ public struct Link: InlineElement, NavigationItem, DropdownItem {
     /// The location to which this link should direct users.
     var url: String
 
+    /// The language version of the destination to link to. Defaults to the language
+    /// of the page this link appears on.
+    var language: Language?
+
     /// The style for this link. Defaults to `.automatic`.
     var style = Style.automatic
 
@@ -86,7 +90,21 @@ public struct Link: InlineElement, NavigationItem, DropdownItem {
     /// - Parameters:
     ///   - content: The user-facing content to show inside the `Link`.
     ///   - target: The URL you want to link to.
+    @_disfavoredOverload
     public init(_ content: any InlineElement, target: String) {
+        self.content = content
+        self.url = target
+    }
+
+    /// Creates a `Link` instance from a localized string, linking to the
+    /// URL specified.
+    ///
+    /// String literals use this initializer, so they are looked up in your site's
+    /// `Localizable.xcstrings`. Strings stored in a `String` variable are not localized.
+    /// - Parameters:
+    ///   - content: The localized text to show inside the `Link`.
+    ///   - target: The URL you want to link to.
+    public init(_ content: LocalizedString, target: String) {
         self.content = content
         self.url = target
     }
@@ -119,7 +137,21 @@ public struct Link: InlineElement, NavigationItem, DropdownItem {
     /// - Parameters:
     ///   - content: The user-facing content to show inside the `Link`.
     ///   - target: The `Page` you want to link to.
+    @_disfavoredOverload
     public init(_ content: some InlineElement, target: any StaticPage) {
+        self.content = content
+        self.url = target.path
+    }
+
+    /// Creates a `Link` instance from a localized string, linking to the path
+    /// belonging to the specified `Page`.
+    ///
+    /// String literals use this initializer, so they are looked up in your site's
+    /// `Localizable.xcstrings`. Strings stored in a `String` variable are not localized.
+    /// - Parameters:
+    ///   - content: The localized text to show inside the `Link`.
+    ///   - target: The `Page` you want to link to.
+    public init(_ content: LocalizedString, target: any StaticPage) {
         self.content = content
         self.url = target.path
     }
@@ -129,7 +161,21 @@ public struct Link: InlineElement, NavigationItem, DropdownItem {
     /// - Parameters:
     ///   - content: The user-facing content to show inside the `Link`.
     ///   - target: The URL you want to link to.
+    @_disfavoredOverload
     public init(_ content: String, target: URL) {
+        self.content = content
+        self.url = target.absoluteString
+    }
+
+    /// Creates a `Link` instance from a localized string, linking to the
+    /// URL specified.
+    ///
+    /// String literals use this initializer, so they are looked up in your site's
+    /// `Localizable.xcstrings`. Strings stored in a `String` variable are not localized.
+    /// - Parameters:
+    ///   - content: The localized text to show inside the `Link`.
+    ///   - target: The URL you want to link to.
+    public init(_ content: LocalizedString, target: URL) {
         self.content = content
         self.url = target.absoluteString
     }
@@ -139,7 +185,21 @@ public struct Link: InlineElement, NavigationItem, DropdownItem {
     /// - Parameters:
     ///    - content: The user-facing content to show inside the `Link`.
     ///    - target: An article in your site.
+    @_disfavoredOverload
     public init(_ content: String, target: Article) {
+        self.content = content
+        self.url = target.path
+    }
+
+    /// Creates a `Link` instance from a localized string, linking to the path
+    /// of the `Article` instance you provide.
+    ///
+    /// String literals use this initializer, so they are looked up in your site's
+    /// `Localizable.xcstrings`. Strings stored in a `String` variable are not localized.
+    /// - Parameters:
+    ///    - content: The localized text to show inside the `Link`.
+    ///    - target: An article in your site.
+    public init(_ content: LocalizedString, target: Article) {
         self.content = content
         self.url = target.path
     }
@@ -164,6 +224,19 @@ public struct Link: InlineElement, NavigationItem, DropdownItem {
         } else {
             return self
         }
+    }
+
+    /// Links to a specific language's version of the destination, rather than the
+    /// version in the language of the page this link appears on.
+    ///
+    /// Use this to build language switchers. Linking to the site's main language
+    /// produces a root URL, and linking to an alternate language adds its path prefix.
+    /// - Parameter language: One of the languages your site is published in.
+    /// - Returns: A new `Link` instance pointing to that language's version.
+    public func language(_ language: Language) -> Self {
+        var copy = self
+        copy.language = language
+        return copy
     }
 
     /// Adjusts the style of this link, when rendered in the `.button` style.
@@ -257,7 +330,7 @@ public struct Link: InlineElement, NavigationItem, DropdownItem {
             return Markup()
         }
 
-        let path = publishingContext.linkPath(for: url)
+        let path = publishingContext.linkPath(for: url, language: language)
         linkAttributes.append(customAttributes: .init(name: "href", value: path))
         let contentHTML = content.markupString()
         return Markup("<a\(linkAttributes)>\(contentHTML)</a>")

@@ -5,6 +5,8 @@
 // See LICENSE for license information.
 //
 
+import Foundation
+
 /// A small, capsule-shaped piece of information, such as a tag.
 public struct Badge: InlineElement {
     /// The content and behavior of this HTML.
@@ -70,11 +72,22 @@ public struct Badge: InlineElement {
         return outputClasses
     }
 
+    @_disfavoredOverload
     public init(_ text: any InlineElement) {
         self.text = text
     }
 
+    @_disfavoredOverload
     public init(_ text: String) {
+        self.text = text
+    }
+
+    /// Creates a badge from a localized string.
+    ///
+    /// String literals use this initializer, so they are looked up in your site's
+    /// `Localizable.xcstrings`. Strings stored in a `String` variable are not localized.
+    /// - Parameter text: The localized text to display in the badge.
+    public init(_ text: LocalizedString) {
         self.text = text
     }
 

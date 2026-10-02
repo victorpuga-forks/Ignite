@@ -375,23 +375,46 @@ final class PublishingContext: @unchecked Sendable {
     /// Returns a path with a trailing slash appended for local page URLs.
     /// Static hosts serve directory-style pages (path/index.html) at path/,
     /// so links should use the canonical form to avoid 301 redirects.
-    func linkPath(for url: URL) -> String {
+    ///
+    /// Local page paths, including the homepage, also get the prefix of the language
+    /// being rendered, so links stay within the current language.
+    /// External links, anchors and paths to files, such as assets, are left alone.
+    /// - Parameters:
+    ///   - url: The URL to link to.
+    ///   - language: The language version of the page to link to.
+    ///   Defaults to the language currently being rendered.
+    func linkPath(for url: URL, language: Language? = nil) -> String {
         var result = path(for: url)
 
         let isExternal = url.scheme == "http" || url.scheme == "https" || url.scheme == "mailto"
-        if !isExternal,
-           !result.hasSuffix("/"),
-           !result.hasPrefix("#") {
-            let lastComponent = result.split(separator: "/").last.map(String.init) ?? ""
-            if !lastComponent.contains(".") {
-                result += "/"
-                if result.hasPrefix("/") {
-                    result = languagePrefix + result
-                }
-            }
+        guard !isExternal, !result.hasPrefix("#") else { return result }
+
+        let lastComponent = result.split(separator: "/").last.map(String.init) ?? ""
+        guard result.hasSuffix("/") || !lastComponent.contains(".") else { return result }
+
+        if !result.hasSuffix("/") {
+            result += "/"
+        }
+
+        if result.hasPrefix("/") {
+            result = linkPrefix(for: language) + result
         }
 
         return result
+    }
+
+    /// The path prefix for links to a language's version of a page.
+    /// - Parameter language: The requested language, or nil to use the language being rendered.
+    private func linkPrefix(for language: Language?) -> String {
+        guard let language else { return languagePrefix }
+        if language == site.language { return "" }
+
+        guard site.alternateLanguages.contains(language) else {
+            addWarning("A link uses the language \(language.rawValue), which is not one of your site's languages.")
+            return languagePrefix
+        }
+
+        return "/" + pathSegment(for: language)
     }
 
     /// Converts a path string to a site-relative path, prepending the site's

@@ -5,6 +5,8 @@
 // See LICENSE for license information.
 //
 
+import Foundation
+
 /// A clickable button with a label and styling.
 public struct Button: InlineElement, FormItem {
     /// Controls the display size of buttons. Medium is the default.
@@ -64,6 +66,7 @@ public struct Button: InlineElement, FormItem {
 
     /// Creates a button with a label.
     /// - Parameter label: The label text to display on this button.
+    @_disfavoredOverload
     public init(_ label: some InlineElement) {
         self.label = label
     }
@@ -81,8 +84,27 @@ public struct Button: InlineElement, FormItem {
     ///   - systemImage: An image name chosen from https://icons.getbootstrap.com.
     ///   - actions: An element builder that returns an array of actions to run when this button is pressed.
     /// - actions: An element builder that returns an array of actions to run when this button is pressed.
+    @_disfavoredOverload
     public init(
         _ title: String,
+        systemImage: String? = nil,
+        @ActionBuilder actions: () -> [Action] = { [] }
+    ) {
+        self.label = title
+        self.systemImage = systemImage
+        addEvent(name: "onclick", actions: actions())
+    }
+
+    /// Creates a button with a localized label.
+    ///
+    /// String literals use this initializer, so they are looked up in your site's
+    /// `Localizable.xcstrings`. Strings stored in a `String` variable are not localized.
+    /// - Parameters:
+    ///   - title: The localized label text to display on this button.
+    ///   - systemImage: An image name chosen from https://icons.getbootstrap.com.
+    ///   - actions: An element builder that returns an array of actions to run when this button is pressed.
+    public init(
+        _ title: LocalizedString,
         systemImage: String? = nil,
         @ActionBuilder actions: () -> [Action] = { [] }
     ) {

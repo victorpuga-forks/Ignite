@@ -5,6 +5,8 @@
 // See LICENSE for license information.
 //
 
+import Foundation
+
 /// An inline subsection of another element, useful when you need to style
 /// just part of some text, for example.
 public struct Span: InlineElement, NavigationItem, FormItem {
@@ -32,8 +34,18 @@ public struct Span: InlineElement, NavigationItem, FormItem {
     /// Creates a span from one `InlineElement`.
     /// - Parameter singleElement: The element you want to place
     /// inside the span.
+    @_disfavoredOverload
     public init(_ singleElement: some InlineElement) {
         self.contents = singleElement
+    }
+
+    /// Creates a span from a localized string.
+    ///
+    /// String literals use this initializer, so they are looked up in your site's
+    /// `Localizable.xcstrings`. Strings stored in a `String` variable are not localized.
+    /// - Parameter string: The localized text you want to place inside the span.
+    public init(_ string: LocalizedString) {
+        self.contents = string
     }
 
     /// Creates a span from an inline element builder that returns an array of

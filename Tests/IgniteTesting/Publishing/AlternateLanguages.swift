@@ -109,6 +109,130 @@ class AlternateLanguagesTests: IgniteTestSuite {
         #expect(render(AlternateLanguagesAbout(), in: .spanish).contains("<p>Bienvenido</p>"))
     }
 
+    @Test(
+        "Link text follows the language of the page",
+        .publishingContext(),
+        arguments: [
+            (nil, "About"),
+            (Language.spanish, "Acerca de"),
+            (Language.portugueseBrazil, "About")
+        ] as [(Language?, String)]
+    )
+    func linkTextFollowsPageLanguage(language: Language?, expectedTitle: String) {
+        useAlternateLanguagesSite()
+
+        let output = render(AlternateLanguagesHome(), in: language)
+
+        #expect(output.contains(">\(expectedTitle)</a>"))
+    }
+
+    @Test("Link titles stored in String variables are not localized", .publishingContext())
+    func linkStringVariableIsVerbatim() {
+        useAlternateLanguagesSite()
+
+        let title = "About"
+        let page = AlternateLanguagesLinks(links: [Link(title, target: "/about")])
+
+        #expect(render(page, in: .spanish).contains(">About</a>"))
+    }
+
+    @Test(
+        "Links to the homepage and static pages keep the page language",
+        .publishingContext(),
+        arguments: [
+            (nil, "/", "/about/"),
+            (Language.spanish, "/es/", "/es/about/"),
+            (Language.portugueseBrazil, "/pt/", "/pt/about/")
+        ] as [(Language?, String, String)]
+    )
+    func homeAndStaticPageLinksKeepPrefix(language: Language?, homeHref: String, aboutHref: String) {
+        useAlternateLanguagesSite()
+        let page = AlternateLanguagesLinks(links: [
+            Link("Home", target: "/"),
+            Link("About", target: AlternateLanguagesAbout())
+        ])
+
+        let output = render(page, in: language)
+
+        #expect(output.contains("href=\"\(homeHref)\""))
+        #expect(output.contains("href=\"\(aboutHref)\""))
+    }
+
+    @Test(
+        "Language switcher links point to the requested language",
+        .publishingContext(),
+        arguments: [nil, Language.spanish, Language.portugueseBrazil] as [Language?],
+        [
+            (Language.english, "/", "/about/"),
+            (Language.spanish, "/es/", "/es/about/"),
+            (Language.portugueseBrazil, "/br/", "/br/about/")
+        ]
+    )
+    func languageSwitcherLinks(pageLanguage: Language?, target: (Language, String, String)) {
+        useAlternateLanguagesSite(pathSegments: [.portugueseBrazil: "br"])
+        let (language, homeHref, aboutHref) = target
+        let page = AlternateLanguagesLinks(links: [
+            Link("Home", target: "/").language(language),
+            Link("About", target: "/about").language(language)
+        ])
+
+        let output = render(page, in: pageLanguage)
+
+        #expect(output.contains("href=\"\(homeHref)\""))
+        #expect(output.contains("href=\"\(aboutHref)\""))
+    }
+
+    @Test(
+        "External links, anchors and assets are never prefixed",
+        .publishingContext(),
+        arguments: [
+            "https://www.example.org/about",
+            "#contact",
+            "/files/guide.pdf",
+            "mailto:hello@example.com"
+        ]
+    )
+    func nonPageLinksAreUnchanged(target: String) {
+        useAlternateLanguagesSite()
+        let page = AlternateLanguagesLinks(links: [Link("Link", target: target)])
+
+        for language in [nil, Language.spanish] {
+            #expect(render(page, in: language).contains("href=\"\(target)\""))
+        }
+    }
+
+    @Test("Language links to languages outside the site fall back to the current language", .publishingContext())
+    func unknownLanguageLinkFallsBack() {
+        useAlternateLanguagesSite()
+        let page = AlternateLanguagesLinks(links: [Link("Français", target: "/about").language(.french)])
+
+        let output = render(page, in: .spanish)
+
+        #expect(output.contains("href=\"/es/about/\""))
+        #expect(PublishingContext.shared.warnings.contains { $0.contains("fr") })
+    }
+
+    @Test("Localized text works in other inline elements", .publishingContext())
+    func localizedInlineElements() {
+        useAlternateLanguagesSite()
+        let elements: [any InlineElement] = [
+            Span("About"),
+            Strong("About"),
+            Emphasis("About"),
+            Underline("About"),
+            Strikethrough("About"),
+            Badge("About"),
+            Button("About")
+        ]
+
+        for element in elements {
+            let page = AlternateLanguagesInlineElement(element: element)
+
+            #expect(render(page).contains("Acerca de") == false, "\(type(of: element))")
+            #expect(render(page, in: .spanish).contains("Acerca de"), "\(type(of: element))")
+        }
+    }
+
     @Test("Sites without alternate languages emit no hreflang", .publishingContext())
     func noAlternates() {
         useAlternateLanguagesSite(alternateLanguages: [])
@@ -140,6 +264,32 @@ private struct AlternateLanguagesAbout: StaticPage {
 
     var body: some HTML {
         Text("Welcome")
+    }
+
+    var layout: any Layout { AlternateLanguagesLayout() }
+}
+
+private struct AlternateLanguagesLinks: StaticPage {
+    var title = "Links"
+    var path = "/links"
+    var links: [Link]
+
+    var body: some HTML {
+        ForEach(links) { link in
+            link
+        }
+    }
+
+    var layout: any Layout { AlternateLanguagesLayout() }
+}
+
+private struct AlternateLanguagesInlineElement: StaticPage {
+    var title = "Inline"
+    var path = "/inline"
+    var element: any InlineElement
+
+    var body: some HTML {
+        Text { element }
     }
 
     var layout: any Layout { AlternateLanguagesLayout() }
