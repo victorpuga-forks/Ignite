@@ -70,6 +70,14 @@ public protocol Site {
     /// The language your site is published in. Defaults to `.en`.
     var language: Language { get }
 
+    /// The bundle containing your site's `Localizable.xcstrings`. Defaults to `.main`.
+    ///
+    /// Ignite uses this bundle for every `LocalizedStringResource` it renders,
+    /// including string literals passed to `Text`.
+    /// Any `bundle` you set on an individual resource is ignored.
+    /// Set this to `.module` if your catalog lives in a Swift package target.
+    var localizationBundle: Bundle { get }
+
     /// The base URL for your site, e.g. https://www.example.com
     var url: URL { get }
 
@@ -186,6 +194,9 @@ public extension Site {
 
     /// English as default language.
     var language: Language { .english }
+
+    /// Uses the main bundle for localized strings.
+    var localizationBundle: Bundle { .main }
 
     /// Uses `.gmt` as the default.
     var timeZone: TimeZone? { .gmt }
