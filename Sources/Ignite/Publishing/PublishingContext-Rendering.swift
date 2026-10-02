@@ -52,12 +52,34 @@ extension PublishingContext {
         filename: String = "index",
         hasLanguageAlternates: Bool = false
     ) {
-        let path = languagePrefix + pagePath
+        let outputString = markupString(
+            for: page,
+            rootPath: rootPath,
+            pagePath: pagePath,
+            hasLanguageAlternates: hasLanguageAlternates)
+
+        let outputDirectory = buildDirectory.appending(path: languagePrefix + pagePath)
+        write(outputString, to: outputDirectory, priority: priority, filename: filename)
+    }
+
+    /// Creates the HTML document for a static page in the language currently being rendered.
+    /// - Parameters:
+    ///   - page: The page to render.
+    ///   - rootPath: The root path the page renders at.
+    ///   - pagePath: The page's path without any language prefix.
+    ///   - hasLanguageAlternates: Whether this page is also published in the
+    ///   site's alternate languages.
+    func markupString(
+        for page: any StaticPage,
+        rootPath: String,
+        pagePath: String,
+        hasLanguageAlternates: Bool
+    ) -> String {
         currentRenderingPath = rootPath
         let pageMetadata = PageMetadata(
             title: page.title,
             description: page.description,
-            url: site.url.appending(path: path),
+            url: site.url.appending(path: languagePrefix + pagePath),
             image: page.image,
             alternates: hasLanguageAlternates ? languageAlternates(forPagePath: pagePath) : []
         )
@@ -70,12 +92,9 @@ extension PublishingContext {
             pageContent: page,
             language: alternateLanguage)
 
-        let outputString = withEnvironment(values) {
+        return withEnvironment(values) {
             page.layout.documentMarkupString()
         }
-
-        let outputDirectory = buildDirectory.appending(path: path)
-        write(outputString, to: outputDirectory, priority: priority, filename: filename)
     }
 
     /// The URLs of a page in the site's main language and each alternate language.

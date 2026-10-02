@@ -13,107 +13,107 @@ import Testing
 /// Tests for publishing a site in alternate languages.
 @Suite("Alternate Languages Tests")
 class AlternateLanguagesTests: IgniteTestSuite {
-    /// Switches the current publishing context to a site with alternate languages
-    /// and points its build directory at a fresh temporary folder.
+    /// Switches the current publishing context to a site with alternate languages.
     private func useAlternateLanguagesSite(
+        alternateLanguages: [Language] = [.spanish, .portugueseBrazil],
         pathSegments: [Language: String] = [:]
-    ) throws -> URL {
-        let buildDirectory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-        try FileManager.default.createDirectory(at: buildDirectory, withIntermediateDirectories: true)
-
+    ) {
         var site = AlternateLanguagesTestSite()
+        site.alternateLanguages = alternateLanguages
         site.languagePathSegments = pathSegments
+        PublishingContext.shared.site = site
+    }
 
+    /// Renders a page as it would be published in the given language.
+    /// - Parameters:
+    ///   - page: The page to render.
+    ///   - language: The alternate language to render in, or nil for the site's main language.
+    private func render(_ page: any StaticPage, in language: Language? = nil) -> String {
         let context = PublishingContext.shared
-        context.site = site
-        context.buildDirectory = buildDirectory
-        return buildDirectory
+        context.alternateLanguage = language
+        defer { context.alternateLanguage = nil }
+
+        return context.markupString(
+            for: page,
+            rootPath: page.path,
+            pagePath: page.path,
+            hasLanguageAlternates: true)
     }
 
-    private func publish(at buildDirectory: URL) {
-        let context = PublishingContext.shared
-        context.render(homePage: context.site.homePage)
+    @Test("Main language keeps the site language and root URL", .publishingContext())
+    func mainLanguageStaysAtRoot() {
+        useAlternateLanguagesSite()
 
-        for page in context.site.staticPages {
-            context.render(page)
-        }
+        let output = render(AlternateLanguagesAbout())
 
-        context.renderAlternateLanguages()
+        #expect(output.contains("lang=\"en\""))
+        #expect(output.contains("href=\"https://www.example.com/about\" rel=\"canonical\""))
     }
 
-    private func read(_ path: String, in buildDirectory: URL) throws -> String {
-        try String(contentsOf: buildDirectory.appending(path: path), encoding: .utf8)
-    }
+    @Test("Alternate languages render with their own language under a prefix", .publishingContext())
+    func alternatesUseLanguageAndPrefix() {
+        useAlternateLanguagesSite()
 
-    @Test("Main language stays at the root while alternates get a prefix", .publishingContext())
-    func alternatesArePublishedUnderPrefix() throws {
-        let buildDirectory = try useAlternateLanguagesSite()
-        publish(at: buildDirectory)
+        let output = render(AlternateLanguagesAbout(), in: .spanish)
 
-        #expect(try read("index.html", in: buildDirectory).contains("lang=\"en\""))
-        #expect(try read("about/index.html", in: buildDirectory).contains("lang=\"en\""))
-        #expect(try read("es/index.html", in: buildDirectory).contains("lang=\"es\""))
-        #expect(try read("es/about/index.html", in: buildDirectory).contains("lang=\"es\""))
+        #expect(output.contains("lang=\"es\""))
+        #expect(output.contains("href=\"https://www.example.com/es/about\" rel=\"canonical\""))
     }
 
     @Test("Region-tagged languages use the base language code by default", .publishingContext())
-    func regionTaggedLanguageUsesBaseCode() throws {
-        let buildDirectory = try useAlternateLanguagesSite()
-        publish(at: buildDirectory)
+    func regionTaggedLanguageUsesBaseCode() {
+        useAlternateLanguagesSite()
 
-        let output = try read("pt/about/index.html", in: buildDirectory)
+        let output = render(AlternateLanguagesAbout(), in: .portugueseBrazil)
+
         #expect(output.contains("lang=\"pt-BR\""))
+        #expect(output.contains("href=\"https://www.example.com/pt/about\" rel=\"canonical\""))
     }
 
     @Test("Path segment can be overridden per language", .publishingContext())
-    func pathSegmentOverride() throws {
-        let buildDirectory = try useAlternateLanguagesSite(pathSegments: [.spanish: "espanol"])
-        publish(at: buildDirectory)
+    func pathSegmentOverride() {
+        useAlternateLanguagesSite(pathSegments: [.spanish: "espanol"])
 
-        #expect(try read("espanol/about/index.html", in: buildDirectory).contains("lang=\"es\""))
-        #expect(FileManager.default.fileExists(atPath: buildDirectory.appending(path: "es").path) == false)
+        let output = render(AlternateLanguagesAbout(), in: .spanish)
+
+        #expect(output.contains("href=\"https://www.example.com/espanol/about\" rel=\"canonical\""))
+        #expect(output.contains("hreflang=\"es\" href=\"https://www.example.com/espanol/about\""))
     }
 
     @Test("Pages link to every language version with hreflang", .publishingContext())
-    func hreflangLinks() throws {
-        let buildDirectory = try useAlternateLanguagesSite()
-        publish(at: buildDirectory)
+    func hreflangLinks() {
+        useAlternateLanguagesSite()
 
-        for path in ["about/index.html", "es/about/index.html"] {
-            let output = try read(path, in: buildDirectory)
-            #expect(output.contains("hreflang=\"en\""))
-            #expect(output.contains("hreflang=\"es\""))
-            #expect(output.contains("hreflang=\"pt-BR\""))
-            #expect(output.contains("https://www.example.com/about"))
-            #expect(output.contains("https://www.example.com/es/about"))
-            #expect(output.contains("https://www.example.com/pt/about"))
+        for language in [nil, Language.spanish] {
+            let output = render(AlternateLanguagesAbout(), in: language)
+
+            #expect(output.contains("hreflang=\"en\" href=\"https://www.example.com/about\""))
+            #expect(output.contains("hreflang=\"es\" href=\"https://www.example.com/es/about\""))
+            #expect(output.contains("hreflang=\"pt-BR\" href=\"https://www.example.com/pt/about\""))
         }
     }
 
     @Test("Internal links in alternate languages keep the language prefix", .publishingContext())
-    func linksKeepPrefix() throws {
-        let buildDirectory = try useAlternateLanguagesSite()
-        publish(at: buildDirectory)
+    func linksKeepPrefix() {
+        useAlternateLanguagesSite()
 
-        #expect(try read("index.html", in: buildDirectory).contains("href=\"/about/\""))
-        #expect(try read("es/index.html", in: buildDirectory).contains("href=\"/es/about/\""))
+        #expect(render(AlternateLanguagesHome()).contains("href=\"/about/\""))
+        #expect(render(AlternateLanguagesHome(), in: .spanish).contains("href=\"/es/about/\""))
+    }
+
+    @Test("Localized text resolves in the language of each page", .publishingContext())
+    func localizedTextFollowsPageLanguage() {
+        useAlternateLanguagesSite()
+
+        #expect(render(AlternateLanguagesAbout()).contains("<p>Welcome</p>"))
+        #expect(render(AlternateLanguagesAbout(), in: .spanish).contains("<p>Bienvenido</p>"))
     }
 
     @Test("Sites without alternate languages emit no hreflang", .publishingContext())
-    func noAlternates() throws {
-        let buildDirectory = FileManager.default.temporaryDirectory.appending(path: UUID().uuidString)
-        try FileManager.default.createDirectory(at: buildDirectory, withIntermediateDirectories: true)
+    func noAlternates() {
+        useAlternateLanguagesSite(alternateLanguages: [])
 
-        var site = AlternateLanguagesTestSite()
-        site.alternateLanguages = []
-
-        let context = PublishingContext.shared
-        context.site = site
-        context.buildDirectory = buildDirectory
-        publish(at: buildDirectory)
-
-        #expect(try read("about/index.html", in: buildDirectory).contains("hreflang") == false)
-        #expect(FileManager.default.fileExists(atPath: buildDirectory.appending(path: "es").path) == false)
+        #expect(render(AlternateLanguagesAbout()).contains("hreflang") == false)
     }
 }
 
@@ -139,7 +139,7 @@ private struct AlternateLanguagesAbout: StaticPage {
     var path = "/about"
 
     var body: some HTML {
-        Text("About")
+        Text("Welcome")
     }
 
     var layout: any Layout { AlternateLanguagesLayout() }
@@ -151,6 +151,9 @@ private struct AlternateLanguagesTestSite: Site {
     var language: Language = .english
     var alternateLanguages: [Language] = [.spanish, .portugueseBrazil]
     var languagePathSegments: [Language: String] = [:]
+    var localizationCatalog: URL? {
+        Bundle.module.url(forResource: "Localizable", withExtension: "xcstrings", subdirectory: "Localization")
+    }
 
     var homePage = AlternateLanguagesHome()
     var layout = AlternateLanguagesLayout()
