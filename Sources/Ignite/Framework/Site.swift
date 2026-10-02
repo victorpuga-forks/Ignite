@@ -70,6 +70,16 @@ public protocol Site {
     /// The language your site is published in. Defaults to `.en`.
     var language: Language { get }
 
+    /// Additional languages to publish your static pages in, besides `language`.
+    /// Pages in `language` are published at the root, and each alternate language
+    /// is published under its own path, e.g. `/es/about/`. Defaults to none.
+    var alternateLanguages: [Language] { get }
+
+    /// Overrides the path segment used for an alternate language.
+    /// Languages missing from this dictionary use their language code without
+    /// a region, e.g. `es` for `.spanishMexico`. Defaults to an empty dictionary.
+    var languagePathSegments: [Language: String] { get }
+
     /// The location of your site's `Localizable.xcstrings`. Defaults to `nil`.
     ///
     /// Ignite reads this catalog directly, on every platform, to translate
@@ -207,6 +217,12 @@ public extension Site {
 
     /// English as default language.
     var language: Language { .english }
+
+    /// No alternate languages by default.
+    var alternateLanguages: [Language] { [] }
+
+    /// No path segment overrides by default.
+    var languagePathSegments: [Language: String] { [:] }
 
     /// No string catalog by default.
     var localizationCatalog: URL? { nil }

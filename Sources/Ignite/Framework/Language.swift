@@ -288,4 +288,9 @@ extension Language {
     var locale: Locale {
         Locale(identifier: rawValue)
     }
+
+    /// The language code without a region, e.g. `es` for `es-MX`.
+    var baseCode: String {
+        rawValue.split(separator: "-").first.map(String.init) ?? rawValue
+    }
 }

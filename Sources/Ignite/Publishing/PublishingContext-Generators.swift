@@ -24,6 +24,7 @@ extension PublishingContext {
 
         await renderTagPages()
         await renderErrorPages()
+        renderAlternateLanguages()
     }
 
     /// Generates a sitemap.xml file for this site.

@@ -105,14 +105,15 @@ public struct EnvironmentValues: @unchecked Sendable {
         allContent: [Article],
         pageMetadata: PageMetadata,
         pageContent: any LayoutContent,
-        httpError: HTTPError = EmptyHTTPError()
+        httpError: HTTPError = EmptyHTTPError(),
+        language: Language? = nil
     ) {
         self.decode = DecodeAction(sourceDirectory: sourceDirectory)
         self.articles = ArticleLoader(content: allContent)
         self.feedConfiguration = site.feedConfiguration
         self.themes = site.allThemes
         self.author = site.author
-        self.language = site.language
+        self.language = language ?? site.language
         self.favicon = site.favicon
         self.builtInIconsEnabled = site.builtInIconsEnabled
         self.timeZone = site.timeZone

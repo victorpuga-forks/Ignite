@@ -14,11 +14,25 @@ extension PublishingContext {
     ///   - isHomePage: True if this is your site's homepage; this affects the
     ///   final path that is written to.
     func render(_ page: any StaticPage) {
-        render(page, rootPath: page.path, pagePath: page.path)
+        render(page, rootPath: page.path, pagePath: page.path, hasLanguageAlternates: true)
     }
 
     func render(homePage: any StaticPage) {
-        render(homePage, rootPath: "/", pagePath: "", priority: 1)
+        render(homePage, rootPath: "/", pagePath: "", priority: 1, hasLanguageAlternates: true)
+    }
+
+    /// Renders the homepage and static pages in each of the site's alternate languages.
+    func renderAlternateLanguages() {
+        for language in site.alternateLanguages where language != site.language {
+            alternateLanguage = language
+            render(homePage: site.homePage)
+
+            for page in site.staticPages {
+                render(page)
+            }
+        }
+
+        alternateLanguage = nil
     }
 
     /// Renders a static page.
@@ -28,20 +42,24 @@ extension PublishingContext {
     ///   - pagePath: The path to render the page to.
     ///   - priority: The priority of this page in the sitemap. Defaults to `0.9`.
     ///   - filename: The filename to use for the rendered page. Defaults to `index`.
+    ///   - hasLanguageAlternates: Whether this page is also published in the
+    ///   site's alternate languages. Defaults to `false`.
     func render(
         _ page: any StaticPage,
         rootPath: String,
         pagePath: String,
         priority: Double? = 0.9,
-        filename: String = "index"
+        filename: String = "index",
+        hasLanguageAlternates: Bool = false
     ) {
-        let path = pagePath
+        let path = languagePrefix + pagePath
         currentRenderingPath = rootPath
         let pageMetadata = PageMetadata(
             title: page.title,
             description: page.description,
             url: site.url.appending(path: path),
-            image: page.image
+            image: page.image,
+            alternates: hasLanguageAlternates ? languageAlternates(forPagePath: pagePath) : []
         )
 
         let values = EnvironmentValues(
@@ -49,7 +67,8 @@ extension PublishingContext {
             site: site,
             allContent: allContent,
             pageMetadata: pageMetadata,
-            pageContent: page)
+            pageContent: page,
+            language: alternateLanguage)
 
         let outputString = withEnvironment(values) {
             page.layout.documentMarkupString()
@@ -57,6 +76,23 @@ extension PublishingContext {
 
         let outputDirectory = buildDirectory.appending(path: path)
         write(outputString, to: outputDirectory, priority: priority, filename: filename)
+    }
+
+    /// The URLs of a page in the site's main language and each alternate language.
+    /// - Parameter pagePath: The page's path without any language prefix.
+    /// - Returns: An empty array if the site has no alternate languages.
+    private func languageAlternates(forPagePath pagePath: String) -> [LanguageAlternate] {
+        let alternateLanguages = site.alternateLanguages.filter { $0 != site.language }
+        guard alternateLanguages.isEmpty == false else { return [] }
+
+        let main = LanguageAlternate(language: site.language, url: site.url.appending(path: pagePath))
+        let alternates = alternateLanguages.map {
+            LanguageAlternate(
+                language: $0,
+                url: site.url.appending(path: "/" + pathSegment(for: $0) + pagePath))
+        }
+
+        return [main] + alternates
     }
 
     /// Renders one piece of Markdown content.

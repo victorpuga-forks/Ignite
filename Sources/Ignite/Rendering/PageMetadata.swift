@@ -14,6 +14,16 @@ public struct PageMetadata: Sendable {
     private(set) public var description: String
     private(set) public var url: URL
     private(set) public var image: URL?
+
+    /// The versions of this page published in each language, including this one.
+    /// Empty when the site publishes in a single language.
+    private(set) var alternates = [LanguageAlternate]()
+}
+
+/// A version of a page published in a specific language.
+struct LanguageAlternate: Sendable {
+    let language: Language
+    let url: URL
 }
 
 extension PageMetadata {

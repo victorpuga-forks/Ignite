@@ -111,6 +111,11 @@ public struct Head: MarkupElement {
 
         MetaLink(href: environment.page.url, rel: "canonical")
 
+        for alternate in environment.page.alternates {
+            MetaLink(href: alternate.url, rel: .alternate)
+                .customAttribute(name: "hreflang", value: alternate.language.rawValue)
+        }
+
         if let favicon = site.favicon {
             MetaLink(href: favicon, rel: .icon)
         }

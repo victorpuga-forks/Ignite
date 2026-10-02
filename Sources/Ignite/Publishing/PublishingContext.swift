@@ -99,6 +99,20 @@ final class PublishingContext: @unchecked Sendable {
     /// Path at which content renders. Defaults to nil.
     public var currentRenderingPath: String?
 
+    /// The alternate language currently being rendered, or nil for the site's main language.
+    var alternateLanguage: Language?
+
+    /// The path prefix for the language currently being rendered, e.g. `/es`.
+    /// Empty for the site's main language.
+    var languagePrefix: String {
+        alternateLanguage.map { "/" + pathSegment(for: $0) } ?? ""
+    }
+
+    /// The path segment used for an alternate language in URLs.
+    func pathSegment(for language: Language) -> String {
+        site.languagePathSegments[language] ?? language.baseCode
+    }
+
     /// Any warnings that have been issued during a build.
     private(set) var warnings = OrderedSet<String>()
 
@@ -371,6 +385,9 @@ final class PublishingContext: @unchecked Sendable {
             let lastComponent = result.split(separator: "/").last.map(String.init) ?? ""
             if !lastComponent.contains(".") {
                 result += "/"
+                if result.hasPrefix("/") {
+                    result = languagePrefix + result
+                }
             }
         }
 
