@@ -70,13 +70,26 @@ public protocol Site {
     /// The language your site is published in. Defaults to `.en`.
     var language: Language { get }
 
-    /// The bundle containing your site's `Localizable.xcstrings`. Defaults to `.main`.
+    /// The location of your site's `Localizable.xcstrings`. Defaults to `nil`.
     ///
-    /// Ignite uses this bundle for every `LocalizedStringResource` it renders,
-    /// including string literals passed to `Text`.
-    /// Any `bundle` you set on an individual resource is ignored.
-    /// Set this to `.module` if your catalog lives in a Swift package target.
-    var localizationBundle: Bundle { get }
+    /// Ignite reads this catalog directly, on every platform, to translate
+    /// string literals passed to `Text` and other `LocalizedString` values
+    /// into the language of each page. Plural and device variations are not supported.
+    /// When this is `nil`, strings render as written.
+    ///
+    /// Declare the catalog as a `.copy` resource, not `.process`,
+    /// because processing compiles the catalog and removes the original file:
+    ///
+    /// ```swift
+    /// resources: [.copy("Localizable.xcstrings")]
+    /// ```
+    ///
+    /// ```swift
+    /// var localizationCatalog: URL? {
+    ///     Bundle.module.url(forResource: "Localizable", withExtension: "xcstrings")
+    /// }
+    /// ```
+    var localizationCatalog: URL? { get }
 
     /// The base URL for your site, e.g. https://www.example.com
     var url: URL { get }
@@ -195,8 +208,8 @@ public extension Site {
     /// English as default language.
     var language: Language { .english }
 
-    /// Uses the main bundle for localized strings.
-    var localizationBundle: Bundle { .main }
+    /// No string catalog by default.
+    var localizationCatalog: URL? { nil }
 
     /// Uses `.gmt` as the default.
     var timeZone: TimeZone? { .gmt }

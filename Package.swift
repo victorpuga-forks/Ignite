@@ -41,7 +41,7 @@ let package = Package(
             name: "IgniteTesting",
             dependencies: ["Ignite"],
             resources: [
-                .process("Resources")
+                .copy("Localization")
             ])
     ]
 )

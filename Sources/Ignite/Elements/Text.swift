@@ -46,12 +46,12 @@ public struct Text: HTML, DropdownItem {
         self.content = string
     }
 
-    /// Creates a new `Text` instance from a localized string resource.
+    /// Creates a new `Text` instance from a localized string.
     ///
-    /// String literals use this initializer, so they are looked up in your site's
-    /// `Localizable.xcstrings`. Strings stored in a `String` variable are not localized.
-    public init(_ resource: LocalizedStringResource) {
-        self.content = resource
+    /// String literals use this initializer, so they are looked up in the catalog
+    /// at `Site.localizationCatalog`. Strings stored in a `String` variable are not localized.
+    public init(_ string: LocalizedString) {
+        self.content = string
     }
 
     /// Sets the maximum number of lines for the text to display.
